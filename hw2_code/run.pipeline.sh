@@ -36,7 +36,7 @@ if [ "$PREPROCESSING" = true ] ; then
     mkdir -p list downsampled_videos surf cnn kmeans  # create folders to save features
     awk '{print $1}' ../hw1_code/list/train > list/train.video  # save only video names in one file (keeping first column)
     awk '{print $1}' ../hw1_code/list/val > list/val.video
-    cat list/train.video list/val.video list/test.video > list/all.video    #save all video names in one file
+    cat list/train.video list/val.video ../all_test.video > list/all.video    #save all video names in one file
     downsampling_frame_len=60
     downsampling_frame_rate=15
 
@@ -49,6 +49,8 @@ if [ "$PREPROCESSING" = true ] ; then
     end=`date +%s`
     runtime=$((end-start))
     echo "Downsampling took: $runtime" #28417 sec around 8h without parallelization
+
+    exit 0
 
     # 2. TODO: Extract SURF features over keyframes of downsampled videos (0th, 5th, 10th frame, ...)
     python surf_feat_extraction.py -i list/all.video config.yaml

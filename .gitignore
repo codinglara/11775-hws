@@ -1,0 +1,10 @@
+hw2_code/cnn/*
+hw2_code/surf/*
+hw2_code/cnn_bow/*
+hw2_code/surf_bow/*
+hw2_code/downsampled_videos/*
+hw2_code/kmeans.3000.model
+hw2_code/kmeans.2000.model
+hw2_code/kmeans.1000.model
+hw2_code/kmeans.400.model
+hw2_code/scripts/select.surf.csv

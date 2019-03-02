@@ -3,17 +3,48 @@
 import os
 import sys
 import threading
-import cv2
-import numpy as np
 import yaml
 import pickle
 import pdb
+import pandas as pd
+import numpy as np
+import cv2
 
 
-def get_surf_features_from_video(downsampled_video_filename, surf_feat_video_filename, keyframe_interval):
+def get_surf_features_from_video(downsampled_video_filename, surf_feat_video_filename, keyframe_interval, hessian_threshold):
     "Receives filename of downsampled video and of output path for features. Extracts features in the given keyframe_interval. Saves features in pickled file."
-    # TODO
-    pass
+
+    print("[INFO] get_surf_features_from_video: ", downsampled_video_filename)
+
+    # Get frames from the video
+    img_list = get_keyframes(downsampled_video_filename, keyframe_interval)
+
+    # Initialize first row of feature list
+    feature_list = np.zeros([1,64])
+
+    for i in img_list:
+        # Get gray scale of image
+        image_g = cv2.cvtColor(i,cv2.COLOR_BGR2GRAY)
+
+        # Create SURF object
+        surf = cv2.xfeatures2d.SURF_create(hessian_threshold)
+
+        # Obtain the descriptor
+        kp, des = surf.detectAndCompute(image_g,None)
+
+        if des is not None:
+            # Concatenate with the existing list of descriptors
+            feature_list = np.concatenate((feature_list, des), axis=0)
+
+    # Flatten the array of 2D matrices into an array of arrays
+    feature_list_flat = feature_list.flatten()
+
+    # Delete the first dummy row added
+    feature_list = np.delete(feature_list, (0), axis=0)
+
+    # Save the final 2D matrix for the video
+    df = pd.DataFrame(feature_list)
+    df.to_csv(surf_feat_video_filename, index=False)
 
 
 def get_keyframes(downsampled_video_filename, keyframe_interval):
@@ -21,6 +52,8 @@ def get_keyframes(downsampled_video_filename, keyframe_interval):
 
     # Create video capture object
     video_cap = cv2.VideoCapture(downsampled_video_filename)
+
+    # Get frames one by one
     frame = 0
     while True:
         frame += 1
@@ -29,11 +62,14 @@ def get_keyframes(downsampled_video_filename, keyframe_interval):
             break
         if frame % keyframe_interval == 0:
             yield img
+
+    # Release video object
     video_cap.release()
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    print("Number of arguments", sys.argv)
+    if len(sys.argv) != 3:
         print("Usage: {0} video_list config_file".format(sys.argv[0]))
         print("video_list -- file containing video names")
         print("config_file -- yaml filepath containing all parameters")
@@ -49,16 +85,14 @@ if __name__ == '__main__':
     surf_features_folderpath = my_params.get('surf_features')
     downsampled_videos = my_params.get('downsampled_videos')
 
-    # TODO: Create SURF object
-
     # Check if folder for SURF features exists
     if not os.path.exists(surf_features_folderpath):
         os.mkdir(surf_features_folderpath)
 
     # Loop over all videos (training, val, testing)
-    # TODO: get SURF features for all videos but only from keyframes
 
     fread = open(all_video_names, "r")
+    cnt = 1
     for line in fread.readlines():
         video_name = line.replace('\n', '')
         downsampled_video_filename = os.path.join(downsampled_videos, video_name + '.ds.mp4')
@@ -68,5 +102,9 @@ if __name__ == '__main__':
             continue
 
         # Get SURF features for one video
+        print("File count", cnt)
+        cnt += 1
         get_surf_features_from_video(downsampled_video_filename,
-                                     surf_feat_video_filename, keyframe_interval)
+                                     surf_feat_video_filename, keyframe_interval,
+                                     hessian_threshold)
+
